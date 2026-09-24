@@ -28,6 +28,8 @@ export default function HiveDetailsScreen() {
 
   const [predicting, setPredicting] = useState(false);
 
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
   useEffect(() => {
     async function loadTelemetry() {
       if (!hiveId) return;
@@ -36,6 +38,7 @@ export default function HiveDetailsScreen() {
         const data = await getHiveTelemetry(hiveId);
 
         setReading(data[0] ?? null);
+        setLastUpdated(new Date());
         const latestPrediction = await getLatestPrediction(hiveId);
 
         setPrediction(latestPrediction);
@@ -47,6 +50,21 @@ export default function HiveDetailsScreen() {
     }
 
     loadTelemetry();
+  }, [hiveId]);
+
+  useEffect(() => {
+    if (!hiveId) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const data = await getHiveTelemetry(hiveId);
+        setReading(data[0] ?? null);
+      } catch (error) {
+        console.error("Telemetry refresh failed:", error);
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, [hiveId]);
 
   const handlePrediction = async () => {
@@ -78,6 +96,12 @@ export default function HiveDetailsScreen() {
       <Text className="mt-1 text-sm text-stone-500 dark:text-stone-400">
         Live telemetry
       </Text>
+
+      {lastUpdated && (
+        <Text className="mt-1 text-xs text-stone-400">
+          Updated {lastUpdated.toLocaleTimeString()}
+        </Text>
+      )}
 
       <View className="mt-6 gap-3">
         <TelemetryCard

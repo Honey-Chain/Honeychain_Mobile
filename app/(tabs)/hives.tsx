@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import {
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import {
   IconChevronRight,
   IconHexagon,
@@ -12,6 +18,7 @@ import { getHives, Hive } from "@/src/api/endpoints/hives";
 export default function HivesScreen() {
   const [hives, setHives] = useState<Hive[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     async function loadHives() {
@@ -28,10 +35,26 @@ export default function HivesScreen() {
     loadHives();
   }, []);
 
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+
+      const data = await getHives();
+      setHives(data);
+    } catch (error) {
+      console.error("Failed to refresh hives:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <ScrollView
       className="flex-1 bg-stone-50 dark:bg-stone-950"
       contentContainerClassName="px-5 pb-8 pt-14"
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+      }
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}

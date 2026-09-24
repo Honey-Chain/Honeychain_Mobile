@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { getDashboard, DashboardData } from "@/src/api/endpoints/dashboard";
+import { useAuth } from "@/src/providers/AuthProvider";
 
-import { Pressable, ScrollView, Text, View } from "react-native";
+import {
+  RefreshControl,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 
 import {
   IconBell,
@@ -22,6 +29,9 @@ export default function DashboardScreen() {
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [refreshing, setRefreshing] = useState(false);
+  const { signOut } = useAuth();
+
   useEffect(() => {
     async function loadDashboard() {
       try {
@@ -37,10 +47,26 @@ export default function DashboardScreen() {
     loadDashboard();
   }, []);
 
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+
+      const data = await getDashboard();
+      setDashboard(data);
+    } catch (error) {
+      console.error("Failed to refresh dashboard:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <ScrollView
       className="flex-1 bg-stone-50 dark:bg-stone-950"
       contentContainerClassName="px-5 pb-8 pt-14"
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+      }
       showsVerticalScrollIndicator={false}
     >
       {/* Header */}
@@ -185,6 +211,14 @@ export default function DashboardScreen() {
               : "Your hives are currently within expected ranges."}
         </Text>
       </View>
+
+      {/* Sign out */}
+      <Pressable
+        onPress={signOut}
+        className="mt-6 rounded-xl border border-stone-200 bg-white px-4 py-3 dark:border-stone-800 dark:bg-stone-900"
+      >
+        <Text className="text-center font-semibold text-red-600">Sign out</Text>
+      </Pressable>
     </ScrollView>
   );
 }

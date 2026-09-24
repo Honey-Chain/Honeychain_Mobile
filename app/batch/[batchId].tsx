@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
+import QRCode from "react-native-qrcode-svg";
 import { useLocalSearchParams } from "expo-router";
 import { IconQrcode } from "@tabler/icons-react-native";
 
@@ -84,9 +85,11 @@ export default function BatchDetailsScreen() {
               QR verification data is ready for this batch.
             </Text>
 
-            <Text className="mt-4 text-center text-xs text-stone-400">
-              {qr?.url ?? qr?.qrCode ?? "QR data available"}
-            </Text>
+            {(qr?.url || qr?.qrCode) && (
+              <View className="mt-5 items-center rounded-2xl bg-white p-4">
+                <QRCode value={qr.url ?? qr.qrCode} size={180} />
+              </View>
+            )}
           </View>
         </>
       )}

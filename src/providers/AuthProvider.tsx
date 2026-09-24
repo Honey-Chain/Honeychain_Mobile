@@ -1,9 +1,4 @@
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
 import {
@@ -12,17 +7,19 @@ import {
   setAccessToken,
 } from "@/src/api/auth-storage";
 
+import { logout as logoutApi } from "@/src/api/endpoints/auth";
+import { router } from "expo-router";
+
 type AuthContextValue = {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   setToken: (token: string) => Promise<void>;
   logout: () => Promise<void>;
+  signOut: () => Promise<void>;
 };
 
-const AuthContext = createContext<AuthContextValue | undefined>(
-  undefined
-);
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 type AuthProviderProps = {
   children: ReactNode;
@@ -53,9 +50,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const logout = async () => {
-    await removeAccessToken();
+    try {
+      await logoutApi();
+    } catch (error) {
+      console.error("Logout request failed:", error);
+    } finally {
+      await removeAccessToken();
+      setTokenState(null);
+    }
+  };
 
-    setTokenState(null);
+  const signOut = async () => {
+    await logout();
+    router.replace("/login");
   };
 
   return (
@@ -66,6 +73,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         isAuthenticated: Boolean(token),
         setToken,
         logout,
+        signOut,
       }}
     >
       {children}
