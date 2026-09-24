@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import {
   IconDroplet,
   IconTemperature,
   IconWeight,
+  IconBrain,
 } from "@tabler/icons-react-native";
+import {
+  getLatestPrediction,
+  predictHive,
+  HivePrediction,
+} from "@/src/api/endpoints/ml";
 
 import {
   getHiveTelemetry,
@@ -15,9 +21,12 @@ import {
 export default function HiveDetailsScreen() {
   const { hiveId } = useLocalSearchParams<{ hiveId: string }>();
 
-  const [reading, setReading] =
-    useState<TelemetryReading | null>(null);
+  const [reading, setReading] = useState<TelemetryReading | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const [prediction, setPrediction] = useState<HivePrediction | null>(null);
+
+  const [predicting, setPredicting] = useState(false);
 
   useEffect(() => {
     async function loadTelemetry() {
@@ -27,6 +36,9 @@ export default function HiveDetailsScreen() {
         const data = await getHiveTelemetry(hiveId);
 
         setReading(data[0] ?? null);
+        const latestPrediction = await getLatestPrediction(hiveId);
+
+        setPrediction(latestPrediction);
       } catch (error) {
         console.error("Failed to load telemetry:", error);
       } finally {
@@ -36,6 +48,22 @@ export default function HiveDetailsScreen() {
 
     loadTelemetry();
   }, [hiveId]);
+
+  const handlePrediction = async () => {
+    if (!hiveId) return;
+
+    try {
+      setPredicting(true);
+
+      const result = await predictHive(hiveId);
+
+      setPrediction(result);
+    } catch (error) {
+      console.error("AI prediction failed:", error);
+    } finally {
+      setPredicting(false);
+    }
+  };
 
   return (
     <ScrollView
@@ -87,6 +115,49 @@ export default function HiveDetailsScreen() {
                 : "No data"
           }
         />
+      </View>
+
+      <View className="mt-6 rounded-3xl border border-stone-200 bg-white p-5 dark:border-stone-800 dark:bg-stone-900">
+        <View className="flex-row items-center">
+          <View className="h-10 w-10 items-center justify-center rounded-xl bg-honey-100 dark:bg-stone-800">
+            <IconBrain size={22} color="#D89A24" />
+          </View>
+
+          <View className="ml-3">
+            <Text className="font-semibold text-stone-900 dark:text-stone-100">
+              AI Hive Intelligence
+            </Text>
+
+            <Text className="mt-1 text-xs text-stone-500 dark:text-stone-400">
+              Latest hive health analysis
+            </Text>
+          </View>
+        </View>
+
+        <View className="mt-5">
+          <Text className="text-sm text-stone-500 dark:text-stone-400">
+            Health score
+          </Text>
+
+          <Text className="mt-1 text-3xl font-bold text-stone-950 dark:text-stone-50">
+            {prediction?.healthScore ?? "—"}
+          </Text>
+
+          <Text className="mt-2 text-sm text-stone-600 dark:text-stone-300">
+            {prediction?.recommendation ??
+              "No AI recommendation available yet."}
+          </Text>
+
+          <Pressable
+            onPress={handlePrediction}
+            disabled={predicting}
+            className="mt-5 rounded-xl bg-honey-500 px-4 py-3"
+          >
+            <Text className="text-center font-semibold text-white">
+              {predicting ? "Analyzing..." : "Run AI Analysis"}
+            </Text>
+          </Pressable>
+        </View>
       </View>
     </ScrollView>
   );
