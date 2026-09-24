@@ -1,14 +1,16 @@
-import * as SecureStore from "expo-secure-store";
 import {
   createContext,
   useContext,
   useEffect,
   useState,
 } from "react";
-
 import type { ReactNode } from "react";
 
-const ACCESS_TOKEN_KEY = "honeychain_access_token";
+import {
+  getAccessToken,
+  removeAccessToken,
+  setAccessToken,
+} from "@/src/api/auth-storage";
 
 type AuthContextValue = {
   token: string | null;
@@ -18,7 +20,9 @@ type AuthContextValue = {
   logout: () => Promise<void>;
 };
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+const AuthContext = createContext<AuthContextValue | undefined>(
+  undefined
+);
 
 type AuthProviderProps = {
   children: ReactNode;
@@ -31,8 +35,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     async function restoreSession() {
       try {
-        const storedToken =
-          await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+        const storedToken = await getAccessToken();
 
         setTokenState(storedToken);
       } finally {
@@ -44,12 +47,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const setToken = async (newToken: string) => {
-    await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, newToken);
+    await setAccessToken(newToken);
+
     setTokenState(newToken);
   };
 
   const logout = async () => {
-    await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
+    await removeAccessToken();
+
     setTokenState(null);
   };
 

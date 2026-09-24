@@ -1,21 +1,26 @@
 import axios from "axios";
 
+import { getAccessToken } from "@/src/api/auth-storage";
+
+const API_URL =
+  process.env.EXPO_PUBLIC_API_URL ??
+  "http://localhost:4000";
+
 export const api = axios.create({
-  baseURL:
-    process.env.EXPO_PUBLIC_API_URL ??
-    "http://localhost:4000/api",
-
-  timeout: 15_000,
-
+  baseURL: API_URL,
+  timeout: 15000,
   headers: {
+    Accept: "application/json",
     "Content-Type": "application/json",
   },
 });
 
-export function configureApiToken(token: string | null) {
+api.interceptors.request.use(async (config) => {
+  const token = await getAccessToken();
+
   if (token) {
-    api.defaults.headers.common.Authorization = `Bearer ${token}`;
-  } else {
-    delete api.defaults.headers.common.Authorization;
+    config.headers.Authorization = `Bearer ${token}`;
   }
-}
+
+  return config;
+});

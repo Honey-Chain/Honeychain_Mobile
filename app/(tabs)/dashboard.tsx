@@ -1,20 +1,15 @@
-import {
-  Pressable,
-  ScrollView,
-  Text,
-  View,
-} from "react-native";
+import { useEffect, useState } from "react";
+import { getDashboard, DashboardData } from "@/src/api/endpoints/dashboard";
+
+import { Pressable, ScrollView, Text, View } from "react-native";
 
 import {
   IconBell,
   IconChevronRight,
   IconCloudCheck,
-  IconDroplet,
   IconHexagon,
   IconMoon,
   IconSun,
-  IconTemperature,
-  IconWeight,
 } from "@tabler/icons-react-native";
 
 import { useColorScheme } from "nativewind";
@@ -23,6 +18,24 @@ export default function DashboardScreen() {
   const { colorScheme, toggleColorScheme } = useColorScheme();
 
   const isDark = colorScheme === "dark";
+
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        const data = await getDashboard();
+        setDashboard(data);
+      } catch (error) {
+        console.error("Failed to load dashboard:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDashboard();
+  }, []);
 
   return (
     <ScrollView
@@ -44,13 +57,8 @@ export default function DashboardScreen() {
         </View>
 
         <View className="flex-row items-center gap-2">
-          <Pressable
-            className="h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-stone-900"
-          >
-            <IconBell
-              size={20}
-              color={isDark ? "#F5F5F4" : "#292524"}
-            />
+          <Pressable className="h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-stone-900">
+            <IconBell size={20} color={isDark ? "#F5F5F4" : "#292524"} />
           </Pressable>
 
           <Pressable
@@ -71,16 +79,20 @@ export default function DashboardScreen() {
       <View className="mb-6 rounded-3xl bg-stone-900 p-5 dark:bg-stone-800">
         <View className="flex-row items-center justify-between">
           <View>
-            <Text className="text-sm text-stone-400">
-              Hive health
-            </Text>
+            <Text className="text-sm text-stone-400">Hive health</Text>
 
             <Text className="mt-2 text-4xl font-bold text-white">
-              92
+              {loading
+                ? "—"
+                : Math.round(dashboard?.hives.averageHealthScore ?? 0)}
             </Text>
 
             <Text className="mt-1 text-sm text-stone-400">
-              Healthy · 8 monitored hives
+              {loading
+                ? "Loading hive data..."
+                : `${dashboard?.hives.healthy ?? 0} healthy · ${
+                    dashboard?.hives.total ?? 0
+                  } monitored hives`}
             </Text>
           </View>
 
@@ -102,29 +114,33 @@ export default function DashboardScreen() {
 
       <View className="mb-6 flex-row gap-3">
         <MetricCard
-          icon={<IconTemperature size={20} color="#D89A24" />}
-          label="Temperature"
-          value="34.2°C"
+          icon={<IconHexagon size={20} color="#D89A24" />}
+          label="Healthy hives"
+          value={loading ? "—" : String(dashboard?.hives.healthy ?? 0)}
         />
 
         <MetricCard
-          icon={<IconDroplet size={20} color="#60A5FA" />}
-          label="Humidity"
-          value="61%"
+          icon={<IconBell size={20} color="#60A5FA" />}
+          label="Active alerts"
+          value={loading ? "—" : String(dashboard?.alerts.active ?? 0)}
         />
       </View>
 
       <View className="mb-6 flex-row gap-3">
         <MetricCard
-          icon={<IconWeight size={20} color="#A78BFA" />}
-          label="Hive weight"
-          value="42.8 kg"
+          icon={<IconCloudCheck size={20} color="#A78BFA" />}
+          label="AI predictions"
+          value={loading ? "—" : String(dashboard?.ai.totalPredictions ?? 0)}
         />
 
         <MetricCard
           icon={<IconHexagon size={20} color="#4ADE80" />}
           label="Active hives"
-          value="8 / 8"
+          value={
+            loading
+              ? "—"
+              : `${dashboard?.hives.active ?? 0} / ${dashboard?.hives.total ?? 0}`
+          }
         />
       </View>
 
@@ -140,20 +156,33 @@ export default function DashboardScreen() {
             View all
           </Text>
 
-          <IconChevronRight
-            size={16}
-            color={isDark ? "#E6B34A" : "#B87918"}
-          />
+          <IconChevronRight size={16} color={isDark ? "#E6B34A" : "#B87918"} />
         </Pressable>
       </View>
 
       <View className="rounded-2xl border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
         <Text className="font-semibold text-stone-900 dark:text-stone-100">
-          No critical alerts
+          {loading
+            ? "Loading alerts..."
+            : dashboard?.alerts.active
+              ? `${dashboard.alerts.active} active alerts`
+              : "No active alerts"}
         </Text>
 
         <Text className="mt-1 text-sm text-stone-500 dark:text-stone-400">
-          Your hives are currently within expected ranges.
+          {loading
+            ? "Checking your hive activity."
+            : `${dashboard?.alerts.critical ?? 0} critical · ${
+                dashboard?.alerts.warning ?? 0
+              } warnings`}
+        </Text>
+
+        <Text className="mt-1 text-sm text-stone-500 dark:text-stone-400">
+          {loading
+            ? "Checking your hive activity."
+            : dashboard?.alerts.active
+              ? "Review active alerts to take action."
+              : "Your hives are currently within expected ranges."}
         </Text>
       </View>
     </ScrollView>
